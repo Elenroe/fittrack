@@ -149,6 +149,20 @@
   /* EMPTY STATE */
   .empty { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13px; }
 
+
+  /* CHEAT SHEET */
+  .cheat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+  .cheat-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 10px 12px; }
+  .cheat-name { font-size: 13px; font-weight: 500; line-height: 1.3; }
+  .cheat-portion { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .cheat-kcal { font-size: 16px; font-weight: 500; font-family: var(--mono); margin-top: 4px; }
+  .cheat-kcal span { font-size: 10px; color: var(--muted); font-weight: 400; }
+  .cheat-bar { height: 3px; border-radius: 2px; background: var(--border2); margin-top: 5px; overflow: hidden; }
+  .cheat-fill { height: 100%; border-radius: 2px; }
+  .cheat-cat { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; background: var(--bg2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .cheat-cat.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .cheat-group-lbl { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+
   /* TOAST */
   .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #0a0a0a; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
   .toast.show { opacity: 1; }
@@ -387,6 +401,23 @@
 
   </div>
 
+
+    <!-- CHEAT SHEET SCREEN -->
+    <div class="screen" id="screen-cheat">
+      <div class="hdr">
+        <h1>Calories</h1>
+        <p>quick reference lookup</p>
+      </div>
+      <div style="margin: 0 16px 10px;">
+        <div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 14px;">
+          <span style="color:var(--muted);font-size:14px;">⌕</span>
+          <input type="text" id="cheat-search" placeholder="search food..." oninput="renderCheat()" style="background:none;border:none;outline:none;font-size:14px;color:var(--text);width:100%;padding:0;">
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 16px 12px;" id="cheat-cats"></div>
+      <div id="cheat-list" style="padding:0 16px;"></div>
+    </div>
+
   <nav class="nav">
     <div class="nav-btn active" id="nav-food" onclick="switchScreen('food')">
       <svg viewBox="0 0 24 24" fill="none" stroke="#c8f060" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>
@@ -403,6 +434,10 @@
     <div class="nav-btn" id="nav-progress" onclick="switchScreen('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span>progress</span>
+    </div>
+    <div class="nav-btn" id="nav-cheat" onclick="switchScreen('cheat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span>kcal</span>
     </div>
   </nav>
 </div>
@@ -448,6 +483,7 @@ function init() {
   renderFood();
   renderWorkout();
   renderProgress();
+  initCheat();
 }
 
 function updateClock() {
@@ -457,7 +493,7 @@ function updateClock() {
 
 // ─── SCREEN SWITCHING ─────────────────────────────────────
 function switchScreen(name) {
-  ['food','workout','plan','progress'].forEach(s => {
+  ['food','workout','plan','progress','cheat'].forEach(s => {
     document.getElementById('screen-' + s).classList.remove('active');
     document.getElementById('nav-' + s).classList.remove('active');
   });
@@ -744,6 +780,110 @@ function renderWeightChart() {
     <text x="10" y="${H}" font-size="9" fill="rgba(255,255,255,0.3)">${recent[0].date.slice(5)}</text>
     <text x="${W - 10}" y="${H}" font-size="9" text-anchor="end" fill="rgba(255,255,255,0.3)">${recent[recent.length-1].date.slice(5)}</text>
   `;
+}
+
+
+// ─── CHEAT SHEET ─────────────────────────────────────────
+const CHEAT_DATA = {
+  basics: { label: 'basics', items: [
+    { name: 'Egg (any style)', portion: '1 whole egg', kcal: 70 },
+    { name: 'White rice', portion: '1 cup cooked', kcal: 200 },
+    { name: 'Brown rice', portion: '1 cup cooked', kcal: 215 },
+    { name: 'White bread', portion: '1 slice', kcal: 80 },
+    { name: 'Oats', portion: '1 cup cooked', kcal: 150 },
+    { name: 'Pasta', portion: '1 cup cooked', kcal: 220 },
+    { name: 'Butter', portion: '1 tbsp', kcal: 100 },
+    { name: 'Olive oil', portion: '1 tbsp', kcal: 120 },
+  ]},
+  protein: { label: 'protein', items: [
+    { name: 'Chicken breast', portion: '100g grilled', kcal: 165 },
+    { name: 'Chicken thigh', portion: '100g grilled', kcal: 210 },
+    { name: 'Fried chicken', portion: '1 piece', kcal: 280 },
+    { name: 'Beef lean', portion: '100g cooked', kcal: 215 },
+    { name: 'Salmon', portion: '100g', kcal: 208 },
+    { name: 'Canned tuna', portion: '1 can drained', kcal: 150 },
+    { name: 'Protein shake', portion: '1 scoop + water', kcal: 120 },
+    { name: 'Tofu', portion: '100g', kcal: 76 },
+  ]},
+  mcdonald: { label: "mcdonald's", items: [
+    { name: 'Big Mac', portion: '1 burger', kcal: 550 },
+    { name: 'McChicken', portion: '1 burger', kcal: 400 },
+    { name: 'Quarter Pounder', portion: '1 burger', kcal: 520 },
+    { name: 'Filet-O-Fish', portion: '1 burger', kcal: 380 },
+    { name: 'Medium fries', portion: '1 portion', kcal: 320 },
+    { name: 'Large fries', portion: '1 portion', kcal: 490 },
+    { name: 'Nuggets 6pc', portion: '6 pieces', kcal: 270 },
+    { name: 'McFlurry Oreo', portion: 'regular', kcal: 510 },
+  ]},
+  drinks: { label: 'drinks', items: [
+    { name: 'Water', portion: 'unlimited', kcal: 0 },
+    { name: 'Coke Zero / Diet', portion: '1 can 330ml', kcal: 1 },
+    { name: 'Coke / Pepsi', portion: '1 can 330ml', kcal: 140 },
+    { name: 'Coke large cup', portion: '600ml', kcal: 250 },
+    { name: 'Orange juice', portion: '1 glass 250ml', kcal: 110 },
+    { name: 'Whole milk', portion: '1 cup 250ml', kcal: 150 },
+    { name: 'Black coffee', portion: 'no sugar', kcal: 5 },
+    { name: 'Bubble tea', portion: 'medium 500ml', kcal: 400 },
+  ]},
+  snacks: { label: 'snacks', items: [
+    { name: 'Banana', portion: '1 medium', kcal: 90 },
+    { name: 'Apple', portion: '1 medium', kcal: 80 },
+    { name: 'Greek yogurt', portion: '100g plain', kcal: 59 },
+    { name: 'Peanut butter', portion: '1 tbsp', kcal: 95 },
+    { name: 'Almonds', portion: 'handful 30g', kcal: 170 },
+    { name: 'Chocolate bar', portion: '1 bar ~50g', kcal: 250 },
+    { name: 'Chips / crisps', portion: '1 small pack', kcal: 150 },
+    { name: 'Ice cream', portion: '1 scoop', kcal: 130 },
+  ]},
+  fastfood: { label: 'fast food', items: [
+    { name: 'Pizza slice', portion: '1 regular slice', kcal: 300 },
+    { name: 'KFC original', portion: '1 piece', kcal: 320 },
+    { name: 'Subway 6 inch', portion: 'turkey basic', kcal: 280 },
+    { name: 'Burger beef', portion: '1 basic burger', kcal: 350 },
+    { name: 'Hot dog', portion: '1 with bun', kcal: 290 },
+    { name: 'Shawarma wrap', portion: '1 piece', kcal: 400 },
+    { name: 'Instant noodles', portion: '1 pack cooked', kcal: 350 },
+    { name: 'Sandwich', portion: '2 bread + filling', kcal: 350 },
+  ]},
+};
+
+let cheatCat = 'all';
+
+function initCheat() {
+  const cats = ['all', ...Object.keys(CHEAT_DATA)];
+  document.getElementById('cheat-cats').innerHTML = cats.map(c =>
+    `<div class="cheat-cat ${c === cheatCat ? 'active' : ''}" onclick="setCheatCat('${c}')">${CHEAT_DATA[c] ? CHEAT_DATA[c].label : 'all'}</div>`
+  ).join('');
+  renderCheat();
+}
+
+function setCheatCat(c) { cheatCat = c; initCheat(); }
+
+function cheatColor(kcal) { return kcal <= 100 ? '#639922' : kcal <= 300 ? '#BA7517' : '#D85A30'; }
+
+function renderCheat() {
+  const q = (document.getElementById('cheat-search') || {value:''}).value.toLowerCase().trim();
+  const groups = cheatCat === 'all' ? Object.entries(CHEAT_DATA) : [[cheatCat, CHEAT_DATA[cheatCat]]];
+  let html = '';
+  let any = false;
+  groups.forEach(([key, group]) => {
+    const items = group.items.filter(i => !q || i.name.toLowerCase().includes(q));
+    if (!items.length) return;
+    any = true;
+    html += `<div style="margin-bottom:14px;">
+      <div class="cheat-group-lbl">${group.label}</div>
+      <div class="cheat-grid">
+        ${items.map(item => `<div class="cheat-item">
+          <div class="cheat-name">${item.name}</div>
+          <div class="cheat-portion">${item.portion}</div>
+          <div class="cheat-kcal">${item.kcal} <span>kcal</span></div>
+          <div class="cheat-bar"><div class="cheat-fill" style="width:${Math.min(100,Math.round((item.kcal/600)*100))}%;background:${cheatColor(item.kcal)};"></div></div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  const el = document.getElementById('cheat-list');
+  if (el) el.innerHTML = any ? html : '<div class="empty">nothing found</div>';
 }
 
 // ─── TOAST ────────────────────────────────────────────────
